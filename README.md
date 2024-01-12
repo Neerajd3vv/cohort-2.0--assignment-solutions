@@ -1,1 +1,1 @@
-### Solution of the cohort-2.0 assignments 
+## The solution to the assignment for Cohort 2.0.
