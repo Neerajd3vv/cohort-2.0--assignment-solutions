@@ -27,7 +27,7 @@ function signJwt(username, password) {
         return jwt.sign({ username: username, password: password }, jwtPassword);
     }
 
-}s
+}
 // signJwt("neeraj@gmail.com", "323h312")
 
 /**
@@ -38,7 +38,7 @@ function signJwt(username, password) {
  *                    Returns false if the token is invalid, expired, or not verified
  *                    using the secret key.
  */
-function verifyJwt(token) {s
+function verifyJwt(token) {
     try{
         const decode = jwt.verify(token,jwtPassword)
         console.log(decode);
@@ -58,17 +58,12 @@ function verifyJwt(token) {s
  *                         Returns false if the token is not a valid JWT format.
  */
 function decodeJwt(token) {
-   try {
-    const jwtPayload = jwt.decode(token)
-    if (jwtPayload == null) {
-        return false        
+    const decodedPayload = jwt.decode(token)
+    if (!decodedPayload) {
+        return false
+        
     }
     return true
-    
-   } catch (error) {
-    console.log("not a valide foram");
-    return false
-   }
 }
 
 
