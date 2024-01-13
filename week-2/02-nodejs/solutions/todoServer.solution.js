@@ -32,62 +32,137 @@
     - For any other route not defined in the server return 404
   Testing the server - run `npm run test-todoServer` command in terminal
  */
-  const express = require('express');
-  const bodyParser = require('body-parser');
+  const express = require("express")
+  const fs = require("fs")
+  const {v4: uuidv4} = require("uuid")
+  const app = express()
+  const port = 4069
+  const bodyParser = require("body-parser")
   
-  const app = express();
+  app.use(bodyParser.json())
   
-  app.use(bodyParser.json());
-  
-  let todos = [];
-  
-  app.get('/todos', (req, res) => {
-    res.json(todos);
-  });
-  
-  app.get('/todos/:id', (req, res) => {
-    const todo = todos.find(t => t.id === parseInt(req.params.id));
-    if (!todo) {
-      res.status(404).send();
-    } else {
-      res.json(todo);
+  let myToDo = []
+  // every task of my todo will be save to the file "myTodoFile.json in string format"
+  function saveMyToDoToFile(){
+    fs.writeFile("myTodoFile.json", JSON.stringify(myToDo), (err) =>{
+      if(err) throw err
+      console.log("todo has saved to the file");
     }
-  });
-  
-  app.post('/todos', (req, res) => {
-    const newTodo = {
-      id: Math.floor(Math.random() * 1000000), // unique random id
-      title: req.body.title,
-      description: req.body.description
-    };
-    todos.push(newTodo);
-    res.status(201).json(newTodo);
-  });
-  
-  app.put('/todos/:id', (req, res) => {
-    const todoIndex = todos.findIndex(t => t.id === parseInt(req.params.id));
-    if (todoIndex === -1) {
-      res.status(404).send();
-    } else {
-      todos[todoIndex].title = req.body.title;
-      todos[todoIndex].description = req.body.description;
-      res.json(todos[todoIndex]);
+  )}
+  // to check wheather "myTodoFile.json" exsits if yes import all data from there convert that data to json object and then put it to the empty arry we define earlier
+  if (fs.existsSync("myTodoFile.json")) {
+    const data = fs.readFileSync("myTodoFile.json", "utf8")
+    myToDo = JSON.parse(data)  
+  }
+  // this code will get every tasks in the array
+  app.get("/todoServer",(req,res)=>{
+    res.status(200).json(myToDo)
+  })
+  // to access any specifi task 
+  app.get("/todoServer:id",(req,res)=>{
+    const currentTask = myToDo.find((tsk) => tsk.id === req.params.id)
+    if (currentTask) {
+      res.status(200).json(currentTask)  
+    }else{
+      res.status(404).send("to-do not found")
     }
-  });
+  })
+  // add any new task
+  app.post("/todoServer",(req,res)=>{
+    const {Title, Description, Status} = req.body
+    const newToDo = {id: uuidv4() , Title, Description, Status}
+    myToDo.push(newToDo)
+    saveMyToDoToFile()
+    res.status(200).json({id: newToDo.id })
   
-  app.delete('/todos/:id', (req, res) => {
-    const todoIndex = todos.findIndex(t => t.id === parseInt(req.params.id));
-    if (todoIndex === -1) {
-      res.status(404).send();
-    } else {
-      todos.splice(todoIndex, 1);
-      res.status(200).send();
+  })
+  // to update any specific to-do (task)
+  app.put("/todoServer:id",(req,res)=>{
+    const {Title, Description, Status} = req.body
+    const updatedTodo = myToDo.findIndex((tsk) => tsk.id === req.params.id )
+    if (updatedTodo !== -1) {
+      myToDo[updatedTodo] = {...myToDo[updatedTodo], Title, Description, Status}
+      saveMyToDoToFile()
+      res.status(200).send("to-do is updated")    
+    }else{
+      res.status(404).send("to-do not found")
     }
-  });
+  })
+  // to delete any specific task form todo
+  app.delete("/todoServer:id",(req,res)=>{
+    const deleteTodo = myToDo.findIndex((tsk) => tsk.id === req.params.id)
+    if (deleteTodo !== -1) {
+      myToDo.splice(deleteTodo , 1)
+      saveMyToDoToFile()
+      res.status(200).send("particular task form to-do is deleted")
+       
+    }else{
+      res.status(404).send("to-do not found")
+    }
+  })
+   
+  app.listen(port, ()=>{
+    console.log(`This server is listening on port : ${port}`);
+  })
+
+  // +++++++++++++++++++++++++++++++ sir solution +++++++++++++++++++++++
+
+  // const express = require('express');
+  // const bodyParser = require('body-parser');
   
-  // for all other routes, return 404
-  app.use((req, res, next) => {
-    res.status(404).send();
-  });
+  // const app = express();
   
-  module.exports = app;
+  // app.use(bodyParser.json());
+  
+  // let todos = [];
+  
+  // app.get('/todos', (req, res) => {
+  //   res.json(todos);
+  // });
+  
+  // app.get('/todos/:id', (req, res) => {
+  //   const todo = todos.find(t => t.id === parseInt(req.params.id));
+  //   if (!todo) {
+  //     res.status(404).send();
+  //   } else {
+  //     res.json(todo);
+  //   }
+  // });
+  
+  // app.post('/todos', (req, res) => {
+  //   const newTodo = {
+  //     id: Math.floor(Math.random() * 1000000), // unique random id
+  //     title: req.body.title,
+  //     description: req.body.description
+  //   };
+  //   todos.push(newTodo);
+  //   res.status(201).json(newTodo);
+  // });
+  
+  // app.put('/todos/:id', (req, res) => {
+  //   const todoIndex = todos.findIndex(t => t.id === parseInt(req.params.id));
+  //   if (todoIndex === -1) {
+  //     res.status(404).send();
+  //   } else {
+  //     todos[todoIndex].title = req.body.title;
+  //     todos[todoIndex].description = req.body.description;
+  //     res.json(todos[todoIndex]);
+  //   }
+  // });
+  
+  // app.delete('/todos/:id', (req, res) => {
+  //   const todoIndex = todos.findIndex(t => t.id === parseInt(req.params.id));
+  //   if (todoIndex === -1) {
+  //     res.status(404).send();
+  //   } else {
+  //     todos.splice(todoIndex, 1);
+  //     res.status(200).send();
+  //   }
+  // });
+  
+  // // for all other routes, return 404
+  // app.use((req, res, next) => {
+  //   res.status(404).send();
+  // });
+  
+  // module.exports = app;
