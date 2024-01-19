@@ -1,20 +1,19 @@
 const { Router } = require("express");
 const router = Router();
-const { user,course} = require("../db")
+const { User,Course} = require("../db")
 const userMiddleware = require("../middleware/user");
 
 // User Routes
 router.post('/signup', async (req, res) => {
     // Implement user signup logic
-    const username = req.headers.username
-    const password = req.headers.password
-    const userCheck = await user.findOne({username: username , password: password})
+    const username = req.body.username
+    const password = req.body.password
+    const userCheck = await User.findOne({username: username , password: password})
     if (!userCheck) {
-        const addUser = new user({
-            username: username,
-            password: password
-        })        
-        addUser.save()
+       User.create({
+        username,
+        password
+       })
     }else{
         res.json({msg: "already a user"})
     }
@@ -23,41 +22,40 @@ router.post('/signup', async (req, res) => {
 
 router.get('/courses',userMiddleware, async(req, res) => {
     // Implement listing all courses logic
-    const allCourses = await course.find()
+    const allCourses = await Course.find()
     res.json({msg:allCourses})
 });
 
 router.post('/courses/:courseId', userMiddleware, async(req, res) => {
     // Implement course purchase logic
-    const courseId = req.params.courseId
-    const username =  req.headers.username
-    await user.updateOne({
-        username: username
+    const courseid = req.params.courseId
+    const username = req.headers.username
+    await User.updateOne({
+        username
     },{
         "$push" : {
-            purchasedCourses : courseId
+            coursePurchased : courseid
         }
     })
+    res.json({msg: "course added!"})
 
-    res.json({msg: "message completed!"})
+
 });
 
-router.get('/purchasedCourses', userMiddleware, async (req, res) => {
+router.get('/coursePurchased', userMiddleware, async (req, res) => {
     // Implement fetching purchased courses logic
+    const username = req.headers.username
     const user = await User.findOne({
-        username: req.headers.username
-    });
-
-    console.log(user.purchasedCourses);
-    const courses = await Course.find({
-        _id: {
-            "$in": user.purchasedCourses
-        }
-    });
-
-    res.json({
-        courses: courses
+        username
     })
+    const yourcourses = await Course.find({
+        _id : {
+            "$in" : user.coursePurchased
+        }
+    })
+    res.json({course : yourcourses})
+
+
 });
 
 
