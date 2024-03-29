@@ -61,8 +61,8 @@ userRoute.post(
               password: body.password,
             },
           });
-          const userEmail = newUser.email;
-          const token = await Jwt.sign(userEmail, c.env.JWT_SECRET);
+          const useridy = newUser.id;
+          const token = await Jwt.sign(useridy, c.env.JWT_SECRET);
           return c.json({
             msg: "User created succesfully",
             token: token,
@@ -107,8 +107,8 @@ userRoute.post("/signin", async (c: Context) => {
       if (!userExist) {
         return c.json({ msg: "User does'nt exist with those credentials" });
       } else {
-        const user_email = userExist.email;
-        const token = await Jwt.sign(user_email, c.env.JWT_SECRET);
+        const useridy = userExist.id;
+        const token = await Jwt.sign(useridy, c.env.JWT_SECRET);
         return c.json({
           msg: "Login successfully!",
           token: token,

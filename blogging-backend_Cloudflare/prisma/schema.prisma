@@ -28,12 +28,6 @@ model Posts{
   title String 
   body String?
   status Boolean @default(false)
-  tags Tags[]
   user User @relation(fields: [userId] , references: [id])
 }
 
-model Tags {
-  id Int @id @default(autoincrement())
-  tag String
-  post Posts[]
-}
