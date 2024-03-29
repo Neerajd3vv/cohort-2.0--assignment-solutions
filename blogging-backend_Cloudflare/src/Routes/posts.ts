@@ -15,10 +15,11 @@ const createPostSchema = zod.object({
 });
 
 //////  post create route
-postRouter.post("/InsertPosts", authmiddleware, async (c: Context) => {
+postRouter.post("/createpost", authmiddleware, async (c: Context) => {
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
+
   try {
     const body: {
       title: string;
@@ -30,15 +31,18 @@ postRouter.post("/InsertPosts", authmiddleware, async (c: Context) => {
       return c.json({ msg: "Validation failed" });
     } else {
       const userId = c.get("userid");
+
+      // Create the post, relying on Prisma to handle the relationship
       const newPost = await prisma.posts.create({
         data: {
           title: body.title,
           body: body.body,
           user: {
-            connect: { id: userId },
+            connect: { id: userId }, // Connect to the existing user
           },
         },
       });
+
       return c.json({
         post: {
           title: newPost.title,
@@ -51,7 +55,7 @@ postRouter.post("/InsertPosts", authmiddleware, async (c: Context) => {
   }
 });
 
-////// All posts if user logged in 
+////// All posts if user logged in
 postRouter.get("allposts", authmiddleware, async (c: Context) => {
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
@@ -68,8 +72,7 @@ postRouter.get("allposts", authmiddleware, async (c: Context) => {
   }
 });
 
-
-//// find on bases of id 
+//// find on bases of id
 postRouter.get("/post/:id", authmiddleware, async (c: Context) => {
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
@@ -99,7 +102,6 @@ postRouter.get("/post/:id", authmiddleware, async (c: Context) => {
   }
 });
 
-
 ////// update post of particular id
 postRouter.put("/post/:id", authmiddleware, async (c: Context) => {
   const prisma = new PrismaClient({
@@ -108,6 +110,8 @@ postRouter.put("/post/:id", authmiddleware, async (c: Context) => {
   try {
     const id: number = Number(c.req.param("id"));
     const userid = c.get("userid");
+    console.log(userid);
+
     const body: {
       title: string;
       body: string;
@@ -167,7 +171,7 @@ postRouter.delete("/post/:id", authmiddleware, async (c: Context) => {
       userId: userid,
     },
   });
-  return c.text("Deleted successfully!")
+  return c.text("Deleted successfully!");
 });
 
 export default postRouter;

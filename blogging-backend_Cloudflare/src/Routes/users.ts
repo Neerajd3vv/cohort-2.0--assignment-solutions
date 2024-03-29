@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client/edge";
 import { withAccelerate } from "@prisma/extension-accelerate";
 import zod from "zod";
 import { Jwt } from "hono/utils/jwt";
+import authmiddleware from "../middlewares";
 
 const userRoute = new Hono();
 
@@ -16,7 +17,7 @@ const signupSchema = zod.object({
 
 // signin zod
 const signinSchema = zod.object({
-  email: zod.string().email(),
+  email: zod.string(),
   password: zod.string(),
 });
 
@@ -57,23 +58,23 @@ userRoute.post(
           const newUser = await prisma.user.create({
             data: {
               username: body.username,
-              email: body.username,
+              email: body.email,
               password: body.password,
             },
           });
-          const useridy = newUser.id;
-          const token = await Jwt.sign(useridy, c.env.JWT_SECRET);
+          const userid = newUser.id;
+          const token = await Jwt.sign(userid, c.env.JWT_SECRET);
           return c.json({
             msg: "User created succesfully",
             token: token,
             user: {
               id: newUser.id,
               username: newUser.username,
-              email: newUser.username,
+              email: newUser.email,
             },
           });
         } else {
-          return c.body("User with those inputs already!");
+          return c.body("User with those inputs already exists!");
         }
       }
     } catch (error) {
@@ -81,7 +82,6 @@ userRoute.post(
     }
   }
 );
-
 
 //// SIGNIN /////
 userRoute.post("/signin", async (c: Context) => {
@@ -107,8 +107,8 @@ userRoute.post("/signin", async (c: Context) => {
       if (!userExist) {
         return c.json({ msg: "User does'nt exist with those credentials" });
       } else {
-        const useridy = userExist.id;
-        const token = await Jwt.sign(useridy, c.env.JWT_SECRET);
+        const userid = userExist.id;
+        const token = await Jwt.sign(userid, c.env.JWT_SECRET);
         return c.json({
           msg: "Login successfully!",
           token: token,
@@ -125,6 +125,22 @@ userRoute.post("/signin", async (c: Context) => {
   }
 });
 
+//user Delete route
 
+userRoute.delete("/delete", authmiddleware, async (c: Context) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate());
+
+  try {
+    const userid = c.get("userid");
+    await prisma.user.delete({
+      where: {
+        id: userid,
+      },
+    });
+    return c.text("delete Successfully");
+  } catch (error) {}
+});
 
 export default userRoute;

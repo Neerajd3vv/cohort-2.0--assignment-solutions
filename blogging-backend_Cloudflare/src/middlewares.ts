@@ -9,7 +9,9 @@ async function authmiddleware(c: Context, next: Next) {
   const finalToken = rawToken.split(" ")[1];
   try {
     const decoded = await Jwt.verify(finalToken, c.env.JWT_SECRET);
-    c.set("userid", decoded.userid);
+    c.set("userid", decoded);
+    console.log(decoded);
+    
     await next()
   } catch (error) {
     return c.json({ msg: "Unauthorized" }, 401);
