@@ -12,6 +12,7 @@ const postRouter = new Hono();
 const createPostSchema = zod.object({
   title: zod.string(),
   body: zod.string(),
+  tags: zod.string(),
 });
 
 //////  post create route
@@ -19,44 +20,78 @@ postRouter.post("/createpost", authmiddleware, async (c: Context) => {
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
-
   try {
     const body: {
       title: string;
       body: string;
+      tags: string;
     } = await c.req.json();
-
+    const tagNames = body.tags.split(",").map((tag) => tag.trim());
     const { success } = createPostSchema.safeParse(body);
+
     if (!success) {
-      return c.json({ msg: "Validation failed" });
-    } else {
-      const userId = c.get("userid");
-
-      // Create the post, relying on Prisma to handle the relationship
-      const newPost = await prisma.posts.create({
-        data: {
-          title: body.title,
-          body: body.body,
-          user: {
-            connect: { id: userId }, // Connect to the existing user
-          },
-        },
-      });
-
-      return c.json({
-        post: {
-          title: newPost.title,
-          body: newPost.body,
-        },
-      });
+      return c.body("Invalid user input", 400);
     }
+    const newPost = await prisma.posts.create({
+      data: {
+        title: body.title,
+        body: body.title,
+        userId: c.get("userid"),
+        tags: {
+          connectOrCreate: tagNames.map((tags: any) => ({
+            where: { tags },
+            create: { tags },
+          })),
+        },
+      },
+      include: {
+        tags: true,
+      },
+    });
+    return c.json({
+      message: "Post created successfully!",
+      post: {
+        id: newPost.id,
+        title: newPost.title,
+        body: newPost.body,
+        tags: newPost.tags,
+      },
+    });
   } catch (error) {
-    return c.json(`Internal server error: ${error}`, 500);
+    return c.body(`Internal server error: ${error}`, 500);
   }
 });
 
-////// All posts if user logged in
-postRouter.get("allposts", authmiddleware, async (c: Context) => {
+//// All posts
+postRouter.get("/all-posts", async (c: Context) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate());
+  try {
+    const response = await prisma.posts.findMany({
+      include: {
+        user: true,
+        tags: true,
+      },
+    });
+    return c.json({
+      post: response.map((posts) => ({
+        id: posts.id,
+        username: posts.user.username,
+        email: posts.user.email,
+        userId: posts.user.id,
+        title: posts.title,
+        body: posts.body,
+        tags: posts.tags,
+      })),
+    });
+  } catch (error) {
+    return c.body(`Internal server down:`, 500);
+  }
+});
+
+////// All posts of user logged in
+postRouter.get("/", authmiddleware, async (c: Context) => {
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
@@ -64,6 +99,9 @@ postRouter.get("allposts", authmiddleware, async (c: Context) => {
     const findPosts = await prisma.posts.findMany({
       where: {
         userId: c.get("userid"),
+      },
+      include: {
+        tags: true,
       },
     });
     return c.json({ Posts: findPosts });
@@ -85,6 +123,9 @@ postRouter.get("/post/:id", authmiddleware, async (c: Context) => {
         id: id,
         userId: c.get("userId"),
       },
+      include: {
+        tags: true,
+      },
     });
 
     if (isPostExist == null) {
@@ -95,6 +136,7 @@ postRouter.get("/post/:id", authmiddleware, async (c: Context) => {
         id: isPostExist.id,
         title: isPostExist.title,
         body: isPostExist.body,
+        tags: isPostExist.tags,
       },
     });
   } catch (error) {
@@ -109,17 +151,17 @@ postRouter.put("/post/:id", authmiddleware, async (c: Context) => {
   }).$extends(withAccelerate());
   try {
     const id: number = Number(c.req.param("id"));
-    const userid = c.get("userid");
-    console.log(userid);
 
     const body: {
       title: string;
       body: string;
+      tags: string;
     } = await c.req.json();
+    const tagArray: any = body.tags.split(",").map((tag) => tag.trim());
     const postExists = await prisma.posts.findFirst({
       where: {
         id: id,
-        userId: userid,
+        userId: c.get("userid"),
       },
     });
     if (!postExists) {
@@ -128,18 +170,26 @@ postRouter.put("/post/:id", authmiddleware, async (c: Context) => {
       const updatePost = await prisma.posts.update({
         where: {
           id: id,
-          userId: userid,
+          userId: c.get("userid"),
         },
         data: {
           title: body.title,
           body: body.body,
+          tags: tagArray.map((tag: any) => ({
+            where: { tag },
+            create: { tag },
+          })),
         },
+        include:{
+          tags:true
+        }
       });
       return c.json({
         updatedPost: {
           id: updatePost.id,
           title: updatePost.title,
           body: updatePost.body,
+          tags: updatePost.tags
         },
       });
     }

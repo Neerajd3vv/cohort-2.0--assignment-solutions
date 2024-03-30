@@ -125,8 +125,26 @@ userRoute.post("/signin", async (c: Context) => {
   }
 });
 
-//user Delete route
+// all user route
+userRoute.get("all-users", async (c: Context) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate());
+  try {
+    const alluser = await prisma.user.findMany({});
+    return c.json({
+      users: alluser.map((users) => ({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+      })),
+    });
+  } catch (error) {
+    return c.body(`Internal server error: ${error}`, 500);
+  }
+});
 
+//user Delete route
 userRoute.delete("/delete", authmiddleware, async (c: Context) => {
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,

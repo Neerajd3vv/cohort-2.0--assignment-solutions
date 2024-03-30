@@ -29,5 +29,11 @@ model Posts{
   body String?
   status Boolean @default(false)
   user User @relation(fields: [userId] , references: [id])
+  tags Tags[]
 }
 
+model Tags {
+  id Int @id @default(autoincrement())
+  tags String @unique
+  post Posts[]
+}

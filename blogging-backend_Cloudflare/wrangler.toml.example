@@ -1,0 +1,3 @@
+[vars]
+DATABASE_URL=""
+JWT_TOKEN = ""
